@@ -1,0 +1,105 @@
+﻿import sys
+import datetime
+import numpy as np
+import pandas as pd
+import time
+#import osmnx as ox
+#import networkx as nx
+
+df=pd.read_csv('bike_data_new.csv')
+def function_of_ques1_part1(df):
+
+    df_filtered = df[df['started_at']!=df['ended_at']]
+    df_filtered = pd.DataFrame(df_filtered)
+
+    df_filtered['started_at'] = pd.to_datetime(df_filtered['started_at'])
+    df_filtered['ended_at'] = pd.to_datetime(df_filtered['ended_at'])
+
+    df_filtered['duration'] = df_filtered['ended_at'] - df_filtered['started_at']
+
+    max_duration = df_filtered['duration'].max()
+    min_duration = df_filtered['duration'].min()
+
+    total_seconds_1 = max_duration.total_seconds()
+    total_seconds_2 = min_duration.total_seconds()
+
+    max_duration_hours = total_seconds_1 / 3600
+    min_duration_hours = total_seconds_2 / 3600
+
+    print(f'Max duration of a trip={max_duration_hours:.6f}hours')
+    print(f'Min duration of a trip={min_duration_hours:.6f}hours')
+
+    count_of_min_duration = len(df_filtered[df_filtered['duration'] == min_duration])
+    print('Number of trips corresponding to minimum duration=', count_of_min_duration)
+
+    trips_start_end_same = len(df_filtered[(df_filtered['start_lat'] == df_filtered['end_lat']) & (
+                df_filtered['start_lng'] == df_filtered['end_lng'])])
+    total = len(df_filtered)
+
+    percentage_of_trips_start_end_same = (trips_start_end_same / total) * 100
+    print('Total percentage of trips whose starting and ending position same=', percentage_of_trips_start_end_same, '%')
+    return df_filtered
+
+
+
+start_time = time.perf_counter()
+df_filtered=function_of_ques1_part1(df)
+end_time = time.perf_counter()
+
+total_runtime = end_time - start_time
+print(f"Total runtime of 1st part {total_runtime:.6f} seconds")
+
+
+#question1_2nd_part
+def function_of_ques1_part2(df):
+    df['started_at'] = pd.to_datetime(df['started_at'])
+    df['ended_at'] = pd.to_datetime(df['ended_at'])
+
+    df = df.loc[df['started_at'].dt.hour.between(6, 18)]
+    merged = pd.merge(df, df, how='inner', left_on=['end_lat', 'end_lng'], right_on=['start_lat', 'start_lng'], suffixes=('_a', '_b'))
+    merged = merged.loc[merged['ended_at_a'] <= merged['started_at_b']]
+    feasible_pairs = len(merged)
+    print('\nTotal feasible pairs:', feasible_pairs)
+
+
+start_time = time.perf_counter()
+function_of_ques1_part2(df)
+end_time = time.perf_counter()
+runtime = end_time - start_time
+print(f"Runtime of 2nd part: {runtime:.6f} seconds")
+
+
+#================Question1_part3===========================================================
+'''start_time = time.time()
+df = pd.read_csv('bike_data_new.csv')
+
+df = df.loc[df['trip_id'].isin(range(1, 101))]
+
+depots = set(df[['start_lat', 'start_lng']].apply(tuple, axis=1))
+
+G = ox.graph_from_place(df, network_type='drive')
+
+lat, lon = zip(*depots)
+nodes = ox.distance.nearest_nodes(G, lat, lon)
+
+distances = {}
+
+for i in range(len(nodes)):
+    for j in range(i+1, len(nodes)):
+        try:
+            shortest_path = nx.dijkstra_path_length(G, nodes[i], nodes[j], weight='length')
+            if shortest_path > 0:
+                distances[(nodes[i], nodes[j])] = shortest_path
+        except nx.NetworkXNoPath:
+            distances[(nodes[i], nodes[j])] = -1
+print('Number of unique depots:', len(depots))
+print('Total runtime:', time.time() - start_time)
+if not distances:
+    print('No distances found')
+else:
+    max_dist = max(filter(lambda x: x > 0, distances.values()), default=-1)
+    min_dist = min(filter(lambda x: x > 0, distances.values()), default=-1)
+    print('Maximum distance:', max_dist)
+    print('Minimum distance:', min_dist)
+
+'''
